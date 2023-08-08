@@ -1,0 +1,33 @@
+image: mcr.microsoft.com/dotnet/sdk:7.0
+
+stages:
+    - build
+    - test
+
+before_script:
+  - 'dotnet restore'
+
+build:
+    stage: build
+    tags:
+        - leverx
+    script:
+        - 'dotnet build'
+        - 'dotnet publish UtilizationReports.FunctionApp/UtilizationReports.FunctionApp.csproj -o publish'
+
+test:
+    stage: test
+    tags:
+        - leverx
+    script:
+        - 'dotnet tool restore' # restore tools from .config/dotnet-tools.json
+        - 'dotnet test UtilizationReportsFunctionApp.sln --collect="XPlat Code Coverage" --logger:"junit;LogFilePath=testresult.xml"'
+        - 'dotnet tool run reportgenerator -reports:"**/coverage.cobertura.xml" -targetdir:"./coverage" --reporttypes:Cobertura'
+    artifacts:
+        when: always
+        reports:
+            junit:
+                - "*/testresult.xml"
+            coverage_report:
+                coverage_format: cobertura
+                path: "AzureFunctionApp.UnitTests/TestResults/*/coverage.cobertura.xml"
